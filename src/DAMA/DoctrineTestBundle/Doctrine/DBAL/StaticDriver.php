@@ -28,7 +28,7 @@ class StaticDriver extends Driver\Middleware\AbstractDriverMiddleware
             return parent::connect($params);
         }
 
-        $key = sha1(json_encode($params));
+        $key = $params['dama.connection_key'] ?? sha1(json_encode($params));
 
         if (!isset(self::$connections[$key])) {
             self::$connections[$key] = parent::connect($params);

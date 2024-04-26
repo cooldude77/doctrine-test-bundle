@@ -26,5 +26,8 @@ dama_doctrine_test:
 
 parameters:
     kernel.secret: foo
+    dama.connection_key.default: foo
+    dama.connection_key.replica: foo2
+    dama.connection_key.replica.replica_one: foo3
 
 

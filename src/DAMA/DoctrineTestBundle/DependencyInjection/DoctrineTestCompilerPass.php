@@ -68,7 +68,7 @@ class DoctrineTestCompilerPass implements CompilerPassInterface
 
         $connectionDefinition->replaceArgument(
             0,
-            $this->getModifiedConnectionOptions($connectionDefinition->getArgument(0), $name),
+            $this->getModifiedConnectionOptions($container, $connectionDefinition->getArgument(0), $name),
         );
 
         $connectionConfig = $container->getDefinition(sprintf('doctrine.dbal.%s_connection.configuration', $name));
@@ -90,25 +90,39 @@ class DoctrineTestCompilerPass implements CompilerPassInterface
         $connectionConfig->setMethodCalls($methodCalls);
     }
 
-    private function getModifiedConnectionOptions(array $options, string $name): array
+    private function getModifiedConnectionOptions(ContainerBuilder $container, array $options, string $name): array
     {
         $connectionOptions = array_merge($options, [
             'dama.keep_static' => true,
             'dama.connection_name' => $name,
         ]);
 
+        if ($container->hasParameter($connectionKeyParam = sprintf('dama.connection_key.%s', $name))) {
+            $connectionOptions['dama.connection_key'] = $container->getParameter($connectionKeyParam);
+        }
+
         if (isset($connectionOptions['primary'])) {
             $connectionOptions['primary'] = array_merge($connectionOptions['primary'], [
                 'dama.keep_static' => true,
                 'dama.connection_name' => $name,
             ]);
+
+            if (isset($connectionOptions['dama.connection_key'])) {
+                $connectionOptions['primary']['dama.connection_key'] = $connectionOptions['dama.connection_key'];
+            }
         }
 
         if (isset($connectionOptions['replica']) && is_array($connectionOptions['replica'])) {
             foreach ($connectionOptions['replica'] as $replicaName => &$replica) {
+                $fullName = sprintf('%s.%s', $name, $replicaName);
+
+                if ($container->hasParameter($connectionKeyParam = sprintf('dama.connection_key.%s', $fullName))) {
+                    $replica['dama.connection_key'] = $container->getParameter($connectionKeyParam);
+                }
+
                 $replica = array_merge($replica, [
                     'dama.keep_static' => true,
-                    'dama.connection_name' => sprintf('%s.%s', $name, $replicaName),
+                    'dama.connection_name' => $fullName,
                 ]);
             }
         }
